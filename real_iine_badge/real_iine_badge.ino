@@ -1,3 +1,5 @@
+#include <ESP8266HTTPUpdateServer.h>
+
 #include <ESP8266WiFi.h>
 #include <Milkcocoa.h>
 #include <Wire.h>
@@ -6,8 +8,12 @@
 
 #include "private.h"
 #include "pict.h"
+#include "sound_note.h"
 
 Adafruit_BicolorMatrix matrix = Adafruit_BicolorMatrix();
+
+
+/******************/
 
 #define BADGE_OWNER       "matsuo" // "yasui" "satoon"
 
@@ -27,31 +33,87 @@ const char MQTT_CLIENTID[] PROGMEM  = __TIME__ MILKCOCOA_APP_ID;
 
 Milkcocoa milkcocoa = Milkcocoa(&client, MQTT_SERVER, MILKCOCOA_SERVERPORT, MILKCOCOA_APP_ID, MQTT_CLIENTID);
 
+/********* Counter *****************************/
+
+int count=0;
+int display_num=0;
+/**************** Sound Function **************************/
+void normal_sound(){
+  tone(PIN_BEEP, NOTE_A7, 30);
+  delay(50);
+  tone(PIN_BEEP, NOTE_D8, 100);
+  delay(150);
+}
+
+void zelda_sound(){
+  tone(PIN_BEEP, NOTE_G8, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_FS7, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_DS7, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_A6, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_GS6, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_E7, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_GS7, 150);
+  delay(200);
+  tone(PIN_BEEP, NOTE_G9, 150);
+  delay(200);
+
+}
+
+void one_up_sound(){
+  tone(PIN_BEEP, NOTE_E7, 100);
+  delay(100);
+  tone(PIN_BEEP, NOTE_G7, 100);
+  delay(100);
+  tone(PIN_BEEP, NOTE_E8, 100);
+  delay(100);
+  tone(PIN_BEEP, NOTE_C8, 100);
+  delay(100);
+  tone(PIN_BEEP, NOTE_D8, 100);
+  delay(100);
+  tone(PIN_BEEP, NOTE_G8, 50);
+  delay(300);
+}
+
+/***********/
+
 void onpush(DataElement *elem) {
-  tone(PIN_BEEP, 900, 200);
-  delay(100);
-  tone(PIN_BEEP, 800, 200);
-  delay(100);
-  tone(PIN_BEEP, 500, 200);
-  delay(400);
+
+   count++; //カウントアップ
+   if(count==10){
+    display_num=100;  //ハート(100)をセット
+    zelda_sound();
+   }else if(count>=20){
+   display_num=101; //ワンナップ(101)をセット
+   one_up_sound();
+   }else{
+      display_num=count;  
+      normal_sound();
+   }
 
   int v = 0;
-  int led_color = random(4); // 0 - 3
-  int vertical_or_horizontal = random(2); // 0 - 1
-  int forward_or_backward = random(2); // 0 - 1
+  int led_color = 3;
+  int vertical_or_horizontal =1; //horizontalmode
+  int forward_or_backward = random(2); // 0-1
   int icon_no = random(sizeof(icons) / MATRIX_LINES);
   
   for (v = 0; v < MATRIX_LINES; v++) {
     matrix.clear();
     matrix.writeDisplay();
     delay(1);
+   
 
     int vv = (forward_or_backward == FORWARD_MODE ? v - MATRIX_LINES + 1 : MATRIX_LINES - v  - 1);
     if ( vertical_or_horizontal == VERTICAL_MODE ) {
-      matrix.drawBitmap(vv, 0, icons[icon_no], 8, 8, led_color);
+      matrix.drawBitmap(vv, 0, numbertable[display_num], 8, 8, led_color);
     }
     else if ( vertical_or_horizontal == HORIZONTAL_MODE ) {
-      matrix.drawBitmap(0, vv, icons[icon_no], 8, 8, led_color);
+      matrix.drawBitmap(0, vv,numbertable[display_num], 8, 8, led_color);
     }
     matrix.writeDisplay();
     delay(29 + abs(v));
@@ -62,7 +124,6 @@ void onpush(DataElement *elem) {
   matrix.writeDisplay();
   
 };
-
 
 void setup() {
 
@@ -88,7 +149,7 @@ void setup() {
   Serial.println( milkcocoa.on(MILKCOCOA_DATASTORE, "push", onpush) );
 
   matrix.begin(0x70);
-  matrix.setRotation(3);
+  matrix.setRotation(4);
   matrix.clear();
   matrix.writeDisplay();
 
