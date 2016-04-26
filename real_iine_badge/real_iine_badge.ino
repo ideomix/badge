@@ -12,6 +12,9 @@
 
 Adafruit_BicolorMatrix matrix = Adafruit_BicolorMatrix();
 
+uint8_t MAC_array[6];
+char MAC_char[18];
+String MAC_address;
 
 /******************/
 
@@ -83,7 +86,7 @@ void one_up_sound(){
 /***********/
 
 void onpush(DataElement *elem) {
-
+Serial.println("push!");
    count++; //カウントアップ
    if(count==10){
     display_num=100;  //ハート(100)をセット
@@ -128,12 +131,21 @@ void onpush(DataElement *elem) {
 void setup() {
 
   Serial.begin(115200);
-  delay(100);
+  delay(1000);
 
   // Connect to WiFi access point.
   Serial.println(); Serial.println();
+  delay(10000);
+  
   Serial.print("Connecting to ");
   Serial.println(WLAN_SSID);
+
+
+  WiFi.macAddress(MAC_array);
+  for (int i = 0; i < sizeof(MAC_array); ++i){
+    sprintf(MAC_char,"%s%02x",MAC_char,MAC_array[i]);
+  }
+  MAC_address = MAC_char;
 
   WiFi.begin(WLAN_SSID, WLAN_PASS);
   while (WiFi.status() != WL_CONNECTED) {
@@ -146,7 +158,25 @@ void setup() {
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 
-  Serial.println( milkcocoa.on(MILKCOCOA_DATASTORE, "push", onpush) );
+  Serial.println("MAC address: ");
+  Serial.println(MAC_char);
+
+  // Datastore名を作成(reaction/MAC_ADDRESS)
+  String str_ds = String(MILKCOCOA_DS_REACTION);
+  str_ds.concat(MAC_address);
+  
+  // Datastore名をchar配列にキャスト
+  char ds[str_ds.length()];
+  str_ds.toCharArray(ds, str_ds.length());
+
+  Serial.println(ds);
+  milkcocoa.on(ds, "push", onpush);
+
+  // MACアドレスをデータストア(MAC_LIST)に登録
+//FIXME: まだうまく登録されない
+//  DataElement elem = DataElement();
+//  elem.setValue("mac_address", MAC_char);
+//  Serial.println( milkcocoa.push(MILKCOCOA_DS_MAC_LIST, &elem) );
 
   matrix.begin(0x70);
   matrix.setRotation(4);
